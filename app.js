@@ -46,39 +46,56 @@ app.post("/todos/", async (request, response) => {
   console.log(id, todo, priority, status);
   const insertQry = `insert into todo (id,todo,priority,status) values
   (${id},"${todo}","${priority}","${status}");`;
-  const rt = db.run(insertQry);
+  const rt = await db.run(insertQry);
   response.send("Todo Successfully Added");
 });
 
 // >------------------------------------->>> 4
 
 app.put("/todos/:todoId/", async (request, response) => {
-  const { status, todo, priority } = request.body;
   const { todoId } = request.params;
-  //   console.log(status, todo, priority);
-  if (status !== undefined) {
-    const updateQry = `update todo set status ="%${status}%" 
-   where id =${todoId};`;
-    const update = await db.run(updateQry);
-    response.send(`Status Updated`);
-  } else if (priority !== undefined) {
-    const updateQry = `update todo set
-  priority = "%${priority}%" where id =${todoId};`;
-    const update = await db.run(updateQry);
-    response.send(`Priority Updated`);
-  } else if (todo !== undefined) {
-    const updateQry = `update todo set
-  todo = "%${todo}%" where id =${todoId};`;
-    const update = await db.run(updateQry);
-    response.send(`Todo Updated`);
+  const prevalsQry = `select * from todo where id=${todoId};`;
+  const prevals = await db.get(prevalsQry);
+  const requestBody = request.body;
+  console.log(prevals.status, prevals.priority, prevals.todo);
+  const {
+    status = prevals.status,
+    todo = prevals.todo,
+    priority = prevals.priority,
+  } = requestBody;
+  let UpdateStatus = "";
+
+  console.log(status, todo, priority);
+  switch (true) {
+    case requestBody.status !== undefined:
+      UpdateStatus = "Status";
+      break;
+    case requestBody.priority !== undefined:
+      UpdateStatus = "Priority";
+      break;
+    case requestBody.todo !== undefined:
+      UpdateStatus = "Todo";
+      break;
   }
 
-  //   response.send(`${status}${priority}${todo} Updated`);
+  //   if (requestBody.status !== undefined) {
+  //     UpdateStatus = "Status";
+  //   } else if (requestBody.priority !== undefined) {
+  //     UpdateStatus = "Priority";
+  //   } else if (requestBody.todo !== undefined) {
+  //     UpdateStatus = "Todo";
+  //   }
+  const updateQry = `update todo set status ="${status}" ,
+    priority = "${priority}",todo ="${todo}" where id =${todoId};`;
+  await db.run(updateQry);
+
+  response.send(`${UpdateStatus} Updated`);
 });
 
 // -------------------------------------->>> 5
 app.delete("/todos/:todoId", async (request, response) => {
   const { todoId } = request.params;
   const sqlQuery = `delete from todo where id=${todoId};`;
+  await db.run(sqlQuery);
   response.send("Todo Deleted");
 });
